@@ -55,6 +55,7 @@ module OmniAuth
       end
 
       def request_phase
+        session.delete("omniauth.state")
         redirect client.auth_code.authorize_url({:redirect_uri => callback_url}.merge(authorize_params))
       end
 
@@ -86,7 +87,7 @@ module OmniAuth
       def callback_phase # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
         error = request.params["error_reason"] || request.params["error"]
         state_in_request = request.params["state"].to_s
-        state_in_session = session.delete("omniauth.state")
+        state_in_session = session["omniauth.state"]
 
         # Log the state values to compare the expected and received state
         LOGGER.info("Callback received with state: #{state_in_request}")
