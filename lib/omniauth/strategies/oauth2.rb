@@ -3,16 +3,15 @@ require "omniauth"
 require "securerandom"
 require "socket"       # for SocketError
 require "timeout"      # for Timeout::Error
+require "logger"       # To enable logging
 
 module OmniAuth
   module Strategies
-    # Authentication strategy for connecting with APIs constructed using
-    # the [OAuth 2.0 Specification](http://tools.ietf.org/html/draft-ietf-oauth-v2-10).
-    # You must generally register your application with the provider and
-    # utilize an application id and secret in order to authenticate using
-    # OAuth 2.0.
     class OAuth2
       include OmniAuth::Strategy
+
+      # Set up a logger (you can configure it as per your needs)
+      LOGGER = Logger.new(STDOUT)
 
       def self.inherited(subclass)
         OmniAuth::Strategy.included(subclass)
@@ -74,6 +73,9 @@ module OmniAuth
         session["omniauth.pkce.verifier"] = options.pkce_verifier if options.pkce
         session["omniauth.state"] = params[:state]
 
+        # Log the generated omniauth.state
+        LOGGER.info("Generated omniauth.state: #{session['omniauth.state']}")
+
         params
       end
 
@@ -83,7 +85,14 @@ module OmniAuth
 
       def callback_phase # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/MethodLength, Metrics/PerceivedComplexity
         error = request.params["error_reason"] || request.params["error"]
-        if !options.provider_ignores_state && (request.params["state"].to_s.empty? || !secure_compare(request.params["state"], session.delete("omniauth.state")))
+        state_in_request = request.params["state"].to_s
+        state_in_session = session.delete("omniauth.state")
+
+        # Log the state values to compare the expected and received state
+        LOGGER.info("Callback received with state: #{state_in_request}")
+        LOGGER.info("Expected state from session: #{state_in_session}")
+
+        if !options.provider_ignores_state && (state_in_request.empty? || !secure_compare(state_in_request, state_in_session))
           fail!(:csrf_detected, CallbackError.new(:csrf_detected, "CSRF detected"))
         elsif error
           fail!(error, CallbackError.new(request.params["error"], request.params["error_description"] || request.params["error_reason"], request.params["error_uri"]))
