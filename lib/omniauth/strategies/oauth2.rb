@@ -94,7 +94,7 @@ module OmniAuth
         LOGGER.info("Expected state from session: #{state_in_session}")
 
         if !options.provider_ignores_state && (state_in_request.empty? || !secure_compare(state_in_request, state_in_session))
-          fail!(:csrf_detected, CallbackError.new(:csrf_detected, "CSRF detected"))
+          fail!(:csrf_detected, CallbackError.new(:csrf_detected, "CSRF detected adding test"))
         elsif error
           fail!(error, CallbackError.new(request.params["error"], request.params["error_description"] || request.params["error_reason"], request.params["error_uri"]))
         else
